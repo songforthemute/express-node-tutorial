@@ -2,8 +2,9 @@
     "name": "node_express_tutorial",
     "version": "1.0.0",
     "description": "learn express on Node",
-    "main": "index.js",
+    "main": "app.js",
     "scripts": {
+        "dev": "nodemon app",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "repository": {
@@ -15,5 +16,11 @@
     "bugs": {
         "url": "https://github.com/songforthemute/express-node-tutorial/issues"
     },
-    "homepage": "https://github.com/songforthemute/express-node-tutorial#readme"
+    "homepage": "https://github.com/songforthemute/express-node-tutorial#readme",
+    "dependencies": {
+        "express": "^4.18.2"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1"
+    }
 }
