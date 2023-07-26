@@ -1,0 +1,19 @@
+{
+    "name": "node_express_tutorial",
+    "version": "1.0.0",
+    "description": "learn express on Node",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/songforthemute/express-node-tutorial.git"
+    },
+    "author": "Leejh",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/songforthemute/express-node-tutorial/issues"
+    },
+    "homepage": "https://github.com/songforthemute/express-node-tutorial#readme"
+}
