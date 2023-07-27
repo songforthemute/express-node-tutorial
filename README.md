@@ -1,5 +1,7 @@
 # Learn Express.js && Node.js
 
+**_Thanks to zerocho :D_**
+
 ## 목차
 
 -   [익스프레스 프로젝트 시작하기](#익스프레스-프로젝트-시작하기)
@@ -97,7 +99,7 @@ app.listen(app.get(PORT), () => {
 -   [에러 처리 미들웨어](#에러-처리-미들웨어)
 -   [자주 사용하는 미들웨어](#자주-사용하는-미들웨어)
 -   [미들웨어 활용하기](#미들웨어-활용하기)
--   [multer](#multer)
+-   [멀티파트를 위한 multer](#멀티파트를-위한-multer)
 
 ### 미들웨어란?
 
@@ -149,8 +151,8 @@ app.listen(app.get(PORT), () => {
 
 -   위의 코드에서, `app.get('/')`의 두 번째 미들웨어에서 에러가 발생하고, 이 에러는 아래의 에러 처리 미들웨어에 전달됨.
 -   에러 처리 미들웨어의 매개변수는 `err, req, res, next`로 네 개.
-    `err`: 에러에 관한 정보를 담고 있음.
-    `res`: 응답 관련. `res.status(code)` 메서드를 이용해 HTTP 상태 코드를 지정할 수 있으며, 기본값은 200(성공).
+    -   `err`: 에러에 관한 정보를 담고 있음.
+    -   `res`: 응답 관련. `res.status(code)` 메서드를 이용해 HTTP 상태 코드를 지정할 수 있으며, 기본값은 200(성공).
 -   에러 처리 미들웨어는 특별한 경우가 아니라면 최하단에 위치하는 것이 좋음.
 
 ### 자주 사용하는 미들웨어
@@ -411,7 +413,15 @@ app.use((req, res, next) => {
 -   미들웨어를 사용할 때 유용한 패턴으로, 미들웨어 안에 미들웨어를 넣는 방식.
 -   이 패턴이 유용한 이유는 기존 미들웨어의 기능을 확장할 수 있으며, 위 코드처럼 분기 처리를 할 수도 있음.
 
-### multer
+### 멀티파트를 위한 multer
+
+-   [multer 설치와 필요성](#multer-설치와-필요성)
+-   [multer 개요](#multer-개요)
+-   [단일 파일 업로드](#단일-파일-업로드)
+-   [복수의 파일 업로드](#복수의-파일-업로드)
+-   [multer 활용 예제](#multer-활용-예제)
+
+#### multer 설치와 필요성
 
 ```shell
 $ npm i multer
@@ -429,4 +439,198 @@ $ yarn add multer
     </form>
     ```
 
--   멀티파트 형식으로 업로드하는 데이터는 개발자 도구 Network 탭에서 볼 수 있으며, 이러한 폼을 통해 업로드하는 파일은 body-parser로는 처리할 수 없고, 직접 파싱하기도 어려우므로, multer 미들웨어를 따로 사용해서 처리하면 편리.
+-   멀티파트 형식으로 업로드하는 데이터는 개발자 도구 Network 탭에서 볼 수 있음.
+-   이러한 폼을 통해 업로드하는 파일은 body-parser로는 처리할 수 없고, 직접 파싱하기도 어려우므로, multer 미들웨어를 따로 사용해서 처리하면 편리.
+
+#### multer 개요
+
+```javascript
+const multer = require("multer");
+
+const upload = multer({
+    storage: multer.diskStorage({
+        destination(req, file, done) {
+            done(null, "uploads/");
+        },
+        filename(req, file, done) {
+            const ext = path.extname(file.originalname);
+            done(
+                null,
+                path.basename(file.originalname, ext) + Date.now() + ext
+            );
+        },
+    }),
+    limits: {
+        fileSize: 5 * 1024 * 1024,
+    },
+});
+```
+
+-   `storage` 어디에(`destination`) 어떤 이름으로(`filename`) 저장할지 지정.
+    -   `destination`, `filename` 함수의 매개변수
+        -   `req` 요청에 대한 정보를 담고 있는 객체.
+        -   `file` 업로드한 파일에 대한 정보를 담고 있는 객체.
+        -   `done` 가공한 데이터를 넘겨줄 함수. 첫 번째 인수로는 에러가 있다면 에러를 넣고, 두 번째 인수로는 실제 경로나 파일 이름을 받음.
+-   `limits` 업로드에 대한 제한 사항 설정.
+    -   `fileSize` 바이트 단위의 파일 크기 속성.
+-   _Cf._ 위 코드처럼 활용하기 위해서 `uploads` 폴더가 존재해야 하는데 아래처럼 해결 할 수 있음.
+
+    ```javascript
+    const fs = require("fs");
+
+    try {
+        fs.readdirSync("uploads");
+    } catch (error) {
+        console.log("uploads 폴더가 없어, uploads 폴더를 생성합니다.");
+        fs.mkdirSync("uploads");
+    }
+    ```
+
+#### 단일 파일 업로드
+
+```javascript
+app.post("/upload", upload.single("image"), (req, res) => {
+    console.log(req.file, req.body);
+    res.send("ok");
+});
+```
+
+-   하나의 파일을 업로드하는 경우, 앞서 정의한 `upload`에서 `single` 미들웨어를 사용.
+-   `single` 미들웨어를 라우터 미들웨어 앞에 넣어두면, multer 설정에 따라 파일 업로드 후, `req.file` 객체 생성. (인수는 `input` 태그의 `name` 혹은 폼 데이터의 키와 일치.)
+-   업로드 성공 시 결과는 `req.file` 객체 내에 들어 있으며, `req.body`에는 파일이 아닌 데이터만 들어 있음.
+-   _Cf._ `req.file` 객체
+
+    ```javascript
+    {
+        fieldname: 'img',
+        originalname: 'express.png',
+        encoding: '7bit',
+        mimetype: 'image/png',
+        destination: 'uploads/',
+        filename: 'express1690472907098.png',
+        path: 'uploads\\express1690472907098.png',
+        size: 53535,
+    }
+    ```
+
+#### 복수의 파일 업로드
+
+-   [`array` 미들웨어](#array-미들웨어)
+-   [`fields` 미들웨어](#fields-미들웨어)
+-   [`none` 미들웨어](#none-미들웨어)
+
+##### `array` 미들웨어
+
+```html
+<form id="form" action="/upload" method="post" enctype="multipart/form-data">
+    <input type="file" name="many" multiple />
+    <input type="text" name="title" />
+    <button type="submit">업로드</button>
+</form>
+```
+
+-   하나의 `input`에서 여러 파일을 업로드하는 경우, `input` 태그에 `multiple` 어트리뷰트 지정.
+-   [HTML attribute: multiple | MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/multiple)
+
+```javascript
+app.post("/upload", upload.array("many"), (req, res) => {
+    console.log(req.files, req.body);
+    res.send("ok");
+});
+```
+
+-   `single` 미들웨어 대신, `array` 미들웨어로 교체.
+-   업로드 결과도 `req.file`이 아닌 `req.files` 배열에 들어 있음.
+
+##### `fields` 미들웨어
+
+```html
+<form id="form" action="/upload" method="post" enctype="multipart/form-data">
+    <input type="file" name="image1" />
+    <input type="file" name="image2" />
+    <input type="text" name="title" />
+    <button type="submit">업로드</button>
+</form>
+```
+
+```javascript
+app.post(
+    "/upload",
+    upload.fields([{ name: "image1" }, { name: "image2" }]),
+    (req, res) => {
+        console.log(req.files, req.body);
+        res.send("ok");
+    }
+);
+```
+
+-   파일을 여러 개 업로드하지만, `input` 태그나 폼 데이터의 키가 다른 경우, `fields` 미들웨어를 사용.
+-   `fields` 미들웨어의 인수로 `input` 태그의 `name`을 기술.
+-   업로드 결과는 `req.files.image1`, `req.files.image2`에 각각 들어있게 됨.
+
+##### `none` 미들웨어
+
+```html
+<form id="form" action="/upload" method="post" enctype="multipart/form-data">
+    <input type="text" name="title" />
+    <button type="submit">업로드</button>
+</form>
+```
+
+```javascript
+app.post("/upload", upload.none(), (req, res) => {
+    console.log(req.body);
+    res.send("ok");
+});
+```
+
+-   파일을 업로드하지 않고도 멀티파트 형식으로 업로드하는 경우, `none` 미들웨어를 사용.
+-   파일을 업로드하지 않았으므로, `req.body`만 존재.
+
+#### multer 활용 예제
+
+```javascript
+// app.js
+...
+const multer = require("multer");
+const fs = require("fs");
+
+try {
+    fs.readdirSync("uploads");
+} catch (error) {
+    console.error("uploads 폴더가 없어, uploads 폴더를 생성합니다. ");
+    fs.mkdirSync("uploads");
+}
+
+const upload = multer({
+    storage: multer.diskStorage({
+        destination(req, file, done) {
+            done(null, "uploads/");
+        },
+        filename(req, file, done) {
+            const ext = path.extname(file.originalname);
+            done(
+                null,
+                path.basename(file.originalname, ext) + Date.now() + ext
+            );
+        },
+    }),
+    limits: {
+        fileSize: 5 * 1024 * 1024,
+    },
+});
+
+app.get("/upload", (req, res) => {
+    res.sendFile(path.join(__dirname, "multipart.html"));
+});
+
+app.post(
+    "/upload",
+    upload.fields([{ name: "image1" }, { name: "image2" }]),
+    (req, res) => {
+        console.log(req.files, req.body);
+        res.send("ok");
+    }
+);
+...
+```
