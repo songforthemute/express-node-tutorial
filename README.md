@@ -5,7 +5,33 @@
 ## 목차
 
 -   [익스프레스 프로젝트 시작하기](#익스프레스-프로젝트-시작하기)
+    -   [프로젝트 초기 설정](#프로젝트-초기-설정)
+    -   [`package.json`](#packagejson)
+    -   [`app.js`](#appjs)
 -   [미들웨어 사용하기](#미들웨어-사용하기)
+    -   [미들웨어란?](#미들웨어란?)
+    -   [간단한 미들웨어](#간단한-미들웨어)
+    -   [에러 처리 미들웨어](#에러-처리-미들웨어)
+    -   [자주 사용하는 미들웨어](#자주-사용하는-미들웨어)
+        -   [dotenv](#dotenv)
+        -   [morgan](#morgan)
+        -   [static](#static)
+        -   [body-parser](#body-parser)
+        -   [cookie-parser](#cookie-parser)
+        -   [express-session](#express-session)
+    -   [미들웨어 활용하기](#미들웨어-활용하기)
+    -   [멀티파트를 위한 multer](#멀티파트를-위한-multer)
+        -   [multer 설치와 필요성](#multer-설치와-필요성)
+        -   [multer 개요](#multer-개요)
+        -   [단일 파일 업로드](#단일-파일-업로드)
+        -   [복수의 파일 업로드](#복수의-파일-업로드)
+        -   [multer 활용 예제](#multer-활용-예제)
+-   [라우팅 분리하기](#라우팅-분리하기)
+    -   [라우팅 분리 개요](#라우팅-분리-개요)
+    -   [간단한 라우팅 분리](#간단한-라우팅-분리)
+    -   [`next` 함수를 응용한 라우터 점프](#next-함수를-응용한-라우터-점프)
+    -   [동적 라우팅](#동적-라우팅)
+    -   [라우터 활용 팁](#라우터-활용-팁)
 
 ---
 
@@ -634,3 +660,65 @@ app.post(
 );
 ...
 ```
+
+## 라우팅 분리하기
+
+-   [라우팅 분리 개요](#라우팅-분리-개요)
+-   [간단한 라우팅 분리](#간단한-라우팅-분리)
+-   [`next` 함수를 응용한 라우터 점프](#next-함수를-응용한-라우터-점프)
+-   [동적 라우팅](#동적-라우팅)
+-   [라우터 활용 팁](#라우터-활용-팁)
+
+### 라우팅 분리 개요
+
+-   익스프레스를 사용하는 이유 중 하나로, 라우팅을 깔끔하게 관리할 수 있음.
+-   `app.get`, `app.post` 같은 메서드가 라우터 부분으로, 라우터를 많이 연결하면 `app.js` 코드가 매우 길어지므로, 익스프레스에서는 라우터를 분리할 수 있는 방법을 제공.
+
+### 간단한 라우팅 분리
+
+```javascript
+// routes/index.js
+const express = require("express");
+const router = express.Router();
+
+// GET / 라우터
+router.get("/", (req, res) => {
+    res.send("hello, express!");
+});
+
+module.exports = router;
+
+
+// routes/user.js
+const express = require("express");
+const router = express.Router();
+
+// GET /user 라우터
+router.get("/", (req, res) => {
+    res.send("hello, user!");
+});
+
+module.exports = router;
+
+
+// app.js
+...
+dotenv.config();
+const indexRouter = require("./routes/index");
+const userRouter = require("./routes/user");
+...
+
+app.use("/", indexRouter);
+app.use("/user", userRouter);
+
+app.use((req, res, next) => {
+    res.status(404).send("404 Not Found");
+});
+...
+```
+
+### `next` 함수를 응용한 라우터 점프
+
+### 동적 라우팅
+
+### 라우터 활용 팁
