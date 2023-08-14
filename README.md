@@ -34,6 +34,11 @@
     -   [라우터 활용 팁](#라우터-활용-팁)
 -   [`req`, `res` 객체 살펴보기](#req-res-객체-살펴보기)
 -   [Sequelize ORM](#sequelize-orm)
+    -   [Query Method](#query-method)
+        -   [INSERT 함수](#insert-함수)
+        -   [SELECT 함수](#select-함수)
+        -   [UPDATE 함수](#update-함수)
+        -   [DELETE 함수](#delete-함수)
 
 ---
 
