@@ -33,6 +33,7 @@
     -   [동적 라우팅](#동적-라우팅)
     -   [라우터 활용 팁](#라우터-활용-팁)
 -   [`req`, `res` 객체 살펴보기](#req-res-객체-살펴보기)
+-   [Sequelize ORM](#sequelize-orm)
 
 ---
 
@@ -835,3 +836,110 @@ router.get("/user/:id", (req, res) => {
     -   **`res.sendFile(경로)`** 경로에 위치한 파일을 응답.
     -   **`res.set(헤더, 값)`** 응답의 헤더를 설정.
     -   **`res.status(코드)`** 응답의 HTTP 상태 코드를 지정.
+
+---
+
+## Sequelize ORM
+
+-   [Query Method](#query-method)
+
+---
+
+### Query Method
+
+-   [INSERT 함수](#INSERT-함수)
+-   [SELECT 함수](#SELECT-함수)
+-   [UPDATE 함수](#UPDATE-함수)
+-   [DELETE 함수](#DELETE-함수)
+
+---
+
+#### INSERT 함수
+
+-   `create(values: Object, options: Object)` 해당 모델로 새로운 row를 생성 후, 생성된 row의 인스턴스 반환. 데이터는 인스턴스 내부의 `dataValues` 프로퍼티에 존재.
+-   `findOrCreate(options: Object)` 해당 값으로 먼저 검색하여 존재하면 인스턴스를 반환, 존재하지 않는 경우 새로운 row 생성 후, 인스턴스 반환.
+-   `findCreateFind(options: Object)` 해당 조건에 해당하는 데이터를 검색하고, 존재하지 않는 경우, 생성 후 재검색 및 해당 인스턴스를 반환.
+-   `upsert(values: Object, options: Object)` 레코드의 ID가 존재하는 경우 업데이트하고 존재하지 않는 경우 삽입.
+
+    ```typescript
+    const newUser: User = await User.create({
+        email: "id@example.com",
+        password,
+        username: "lee",
+    });
+
+    const newUser: User = await User.findOrCreate({
+        email: "id@example.com",
+        password,
+        username: "lee",
+    });
+    ```
+
+---
+
+#### SELECT 함수
+
+-   `findAll(options: Object)` 해당 조건에 해당하는 모든 데이터를 검색하고, 배열로 반환.
+-   `findAndCountAll(options: Object)` 해당 조건에 해당하는 모든 데이터를 검색하고, 데이터의 개수를 반환.
+-   `findByPk(id: number | string, options: Object)` Primary Key로 데이터를 검색하고, 해당 인스턴스를 반환.
+-   `findOne(options: Object)` 해당 조건에 해당하는 데이터를 검색하고, 해당 인스턴스를 반환.
+-   `findCreateFind(options: Object)` 해당 조건에 해당하는 데이터를 검색하고, 존재하지 않는 경우, 생성 후 재검색 및 해당 인스턴스를 반환.
+-   `findOrCreate(options: Object)` 해당 값으로 먼저 검색하여 존재하면 인스턴스를 반환, 존재하지 않는 경우 새로운 row 생성 후, 인스턴스 반환.
+
+    ```typescript
+    const users: User[] = await User.findAll({
+        // 검색 조건
+        where: {
+            email: "id@example.com",
+        },
+
+        attributes: ["id", "email"], // 해당 필드만 반환
+        order: [["id", "DESC"]], // 검색 차순 옵션 설정,
+        offset: unit * skip, // offset만큼 점프한 곳에서,
+        limit: unit, // limit만큼 얻어옴.
+
+        // LEFT JOIN을 사용해서 RIGHT 테이블의 데이터를 얻음.
+        include: [
+            {
+                model: Post,
+                attributes: ["id", "title"],
+            },
+        ],
+    });
+    ```
+
+---
+
+#### UPDATE 함수
+
+-   `update(values: Object, options: Object)` 하나 혹은 여러 레코드의 값 갱신.
+-   `upsert(values: Object, options: Object)` 레코드의 ID가 존재하는 경우 갱신하고 존재하지 않는 경우 삽입.
+
+    ```typescript
+    // [affectRowsCount, affectRows]
+    const user: [number, User[]] = await User.create(
+        {
+            email: "id@example.com",
+            username: "lee",
+        },
+        {
+            where: {
+                id: 1,
+            },
+        }
+    );
+    ```
+
+---
+
+#### DELETE 함수
+
+-   `destroy(options: Option)` 하나 혹은 여러 레코드를 삭제.
+
+    ```typescript
+    const result: number = await Users.destroy({
+        where: {
+            id,
+        },
+    });
+    ```

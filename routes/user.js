@@ -3,7 +3,13 @@ const router = express.Router();
 
 // GET /user 라우터
 router.get("/", (req, res) => {
-    res.send("hello, user!");
+    const dictionary = {
+        username: "kevin",
+        job: "football athlete",
+        team: "MCFC",
+    };
+
+    res.json(dictionary);
 });
 
 module.exports = router;
