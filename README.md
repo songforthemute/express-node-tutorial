@@ -39,6 +39,10 @@
         -   [SELECT 함수](#select-함수)
         -   [UPDATE 함수](#update-함수)
         -   [DELETE 함수](#delete-함수)
+-   [`Passport.js`로 인증하기](#passportjs로-인증하기)
+-   [발견한 오류 목록](#발견한-오류-목록)
+    -   [프런트엔드 서버에서 쿠키 발급이 안되는 이슈](#프런트엔드-서버에서-쿠키-발급이-안되는-이슈)
+    -   [Error: req#logout requires a callback function](#error-reqlogout-requires-a-callback-function)
 
 ---
 
@@ -948,3 +952,219 @@ router.get("/user/:id", (req, res) => {
         },
     });
     ```
+
+---
+
+## `Passport.js`로 인증하기
+
+### `Passport.js` 개요
+
+-   세션 쿠키 및 JWT(Json Web Token)를 이용한 인증 프로세스를 **쉽게** 구현할 수 있게 만들어주는 라이브러리.
+-   OAuth를 이용한 소셜 플랫폼(_Ex. facebook, google, kakao_) 인증도 간편하게 구현 가능.
+-   [`Passport.js` 공식 문서](https://www.passportjs.org)
+-   [Passport로 회원가입 및 로그인하기 | Zerocho](https://www.zerocho.com/category/NodeJS/post/57b7101ecfbef617003bf457)
+
+### `Passport.js ` 인증 에제
+
+```javascript
+// /passport/index.js - passport의 설정 파일
+const passport = require("passport");
+const local = require("./localStrategy");
+const { selectUserById } = require("../controllers/user");
+
+module.exports = () => {
+    // 직렬화 - strategy의 done(error, user, opts)의 user 매개변수를 넘겨받음.
+    passport.serializeUser((user, done) => {
+        done(null, user.id);
+    });
+    // 역직렬화
+    passport.deserializeUser(async (id, done) => {
+        try {
+            const { dataValues: user } = await selectUserById(+id);
+            done(null, user);
+        } catch (err) {
+            done(err);
+        }
+    });
+
+    local();
+};
+```
+
+```javascript
+// /passport/localStrategy.js - 사용할 전략 구현, 아래는 로컬 예제
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
+const { selectUserByEmail } = require("../controllers/user");
+const { compareHashed } = require("../libs/hash");
+
+module.exports = () => {
+    passport.use(
+        new LocalStrategy(
+            {
+                usernameField: "email", // req.body.email
+                passwordField: "password", // req.body.password
+                session: true, // 세션 저장 여부
+            },
+            // done: (error, user?, options?)
+            async (email, password, done) => {
+                try {
+                    const user = await selectUserByEmail(email);
+
+                    // 유저 조회 검증
+                    if (user) {
+                        const isAccordPW = await compareHashed(
+                            password,
+                            user?.dataValues?.password
+                        );
+                        // 패스워드 일치 여부 검증
+                        if (isAccordPW) {
+                            done(null, user?.dataValues);
+                        } else {
+                            done(null, false, {
+                                message: "Cannot accord passord.",
+                            });
+                        }
+                    } else {
+                        done(null, false, { message: "Cannot find user." });
+                    }
+                } catch (error) {
+                    done(error);
+                }
+            }
+        )
+    );
+};
+```
+
+```javascript
+// app.js - 라우터에서 호출 전 passport 설정 적용
+...
+const passport = require("passport");
+const passportConfig = require("./passport/index");
+
+// for use env variables
+dotenv.config();
+
+const app = express();
+passportConfig(); // configure passport for auth
+const PORT = "port";
+const PORT_NUMBER = process.env.PORT_NUMBER || 3000;
+
+app.set(PORT, PORT_NUMBER);
+
+...
+app.use(
+  session({
+    resave: false,
+    saveUninitialized: false,
+    secret: process.env.COOKIE_SECRET,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      signed: true,
+      maxAge: 24 * 60 * 60, // a day
+    },
+    name: "express-session-cookie",
+  }),
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+...
+```
+
+```javascript
+// 라우터 적용
+router.post("/login", isNotPrivate, async (req, res, next) => {
+    passport.authenticate("local", async (isError, user, error) => {
+        if (isError) {
+            return next(error);
+        }
+
+        // 해당 이메일로 가입한 사용자가 있는지 검증
+        if (!user) {
+            const error = "해당 이메일로 가입된 사용자가 존재하지 않습니다.";
+            return res.status(401).json({
+                status: false,
+                error,
+            });
+        }
+
+        // 검증 로직 완료, 로그인 로직 수행 - sessioning
+        return req.login(user, (loginErorr) => {
+            if (loginErorr) {
+                return next(loginErorr);
+            }
+
+            // 로그인 완료
+            return res.status(200).json({
+                status: true,
+                data: {
+                    id: user.id,
+                    username: user.username,
+                },
+            });
+        });
+    })(req, res, next); // 미들웨어 내부에서 미들웨어를 호출하는 경우
+});
+
+router.get("/logout", isPrivate, (req, res, next) => {
+    req.logOut((err) => {
+        if (err) {
+            next(err);
+        }
+
+        req.session.destroy();
+
+        return res.status(200).json({
+            status: true,
+        });
+    });
+});
+```
+
+---
+
+## 발견한 오류 목록
+
+-   [프런트엔드 서버에서 쿠키 발급이 안되는 이슈](#프런트엔드-서버에서-쿠키-발급이-안되는-이슈)
+-   [Error: req#logout requires a callback function](#error-reqlogout-requires-a-callback-function)
+
+---
+
+### 프런트엔드 서버에서 쿠키 발급이 안되는 이슈
+
+-   도메인이 동일해야 쿠키가 발급됨.
+-   프런트엔드와 백엔드를 나누어 개발할 경우, 발생할 수 있음.
+-   프런트엔드에서 Proxy를 설정해주면 성공적으로 세션 쿠키가 발급됨
+    -   Cf. [Next.js에서의 proxy 설정 | 호정s 개발 일기](#https://hojung-testbench.tistory.com/entry/NextJS-NextJS%EC%97%90%EC%84%9C%EC%9D%98-proxy%EC%84%A4%EC%A0%95)
+
+---
+
+### Error: req#logout requires a callback function
+
+-   `passport.js`의 버전이 올라가, 함수의 사용 방식이 비동기 방식으로 변경됨.
+-   [[해결법] Error: req#logout requires a callback function | inflearn](https://www.inflearn.com/chats/798511/%ED%95%B4%EA%B2%B0%EB%B2%95-error-req-logout-requires-a-callback-function)
+
+    ```javascript
+    // 기존
+    app.get("/logout", (req, res, next) => {
+        req.logout();
+        res.json({ status: true });
+    });
+
+    // 변경된 방식
+    app.get("/logout", (req, res, next) => {
+        req.logout((err) => {
+            if (err) {
+                return next(err);
+            }
+
+            res.json({ status: true });
+        });
+    });
+    ```
+
+---
