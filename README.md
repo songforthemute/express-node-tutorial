@@ -1139,7 +1139,7 @@ router.get("/logout", isPrivate, (req, res, next) => {
 -   도메인이 동일해야 쿠키가 발급됨.
 -   프런트엔드와 백엔드를 나누어 개발할 경우, 발생할 수 있음.
 -   프런트엔드에서 Proxy를 설정해주면 성공적으로 세션 쿠키가 발급됨
-    -   Cf. [Next.js에서의 proxy 설정 | 호정s 개발 일기](#https://hojung-testbench.tistory.com/entry/NextJS-NextJS%EC%97%90%EC%84%9C%EC%9D%98-proxy%EC%84%A4%EC%A0%95)
+    -   Cf. [Next.js에서의 proxy 설정 | 호정s 개발 일기](https://hojung-testbench.tistory.com/entry/NextJS-NextJS%EC%97%90%EC%84%9C%EC%9D%98-proxy%EC%84%A4%EC%A0%95)
 
 ---
 
